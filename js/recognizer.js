@@ -1,4 +1,4 @@
-import { classifyLetter } from "./alphabetRules.js";
+import { classifyLetter, analyzeFingers } from "./alphabetRules.js";
 
 export class SignRecognizer {
   constructor() {
@@ -27,6 +27,87 @@ export class SignRecognizer {
     this.currentCandidate = null;
     this.candidateCount = 0;
     this.lastAcceptedLetter = null;
+  }
+
+  /**
+   * Obtiene la información de depuración detallada para el frame actual.
+   * @param {Array} landmarks - Los 21 landmarks de la mano.
+   * @param {Object} results - Los resultados completos de MediaPipe.
+   * @returns {Object} Información de depuración.
+   */
+  getDebugInfo(landmarks, results) {
+    if (!landmarks || landmarks.length === 0) {
+      return {
+        detected: false,
+        handedness: "Ninguna",
+        pulgar: "Abajo",
+        index: "Abajo",
+        middle: "Abajo",
+        ring: "Abajo",
+        pinky: "Abajo",
+        pattern: [0, 0, 0, 0, 0],
+        candidate: "Ninguna",
+        confidence: 0
+      };
+    }
+
+    const fingers = analyzeFingers(landmarks);
+    if (!fingers) {
+      return { detected: false };
+    }
+
+    const { thumb, index, middle, ring, pinky } = fingers;
+
+    // Traducir lateralidad (handedness)
+    const handednessArray = results.handednesses || results.handedness;
+    let rawHandedness = "Desconocido";
+    let score = 0;
+    if (handednessArray && handednessArray[0] && handednessArray[0][0]) {
+      rawHandedness = handednessArray[0][0].categoryName;
+      score = handednessArray[0][0].score;
+    }
+
+    const handedness = rawHandedness === "Left" ? "Izquierda" : (rawHandedness === "Right" ? "Derecha" : "Ninguna");
+    const confidence = Math.round(score * 100);
+
+    // Mapear estado de los dedos principales
+    const mapFinger = (f) => {
+      if (f.open) return "Arriba";
+      if (f.closed) return "Abajo";
+      return "Curvo";
+    };
+
+    const mapPattern = (f) => {
+      if (f.open) return 1;
+      if (f.closed) return 0;
+      return 0.5;
+    };
+
+    const pulgarState = thumb.folded ? "Abajo" : "Arriba";
+    const pulgarPattern = thumb.folded ? 0 : 1;
+
+    const pattern = [
+      pulgarPattern,
+      mapPattern(index),
+      mapPattern(middle),
+      mapPattern(ring),
+      mapPattern(pinky)
+    ];
+
+    const candidate = classifyLetter(landmarks) || "Ninguna";
+
+    return {
+      detected: true,
+      handedness,
+      pulgar: pulgarState,
+      index: mapFinger(index),
+      middle: mapFinger(middle),
+      ring: mapFinger(ring),
+      pinky: mapFinger(pinky),
+      pattern,
+      candidate,
+      confidence
+    };
   }
 
   /**

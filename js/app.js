@@ -17,6 +17,9 @@ let detector;
 let recognizer;
 let animationFrameId = null;
 
+// Habilitar panel de depuración temporal
+const DEBUG = true;
+
 /**
  * Inicializa la aplicación, asocia eventos de escucha y realiza la precarga del modelo de IA.
  */
@@ -142,12 +145,27 @@ function startDetectionLoop() {
              ======================================================================== */
           ui.updateSubtitles("Mano detectada. Esperando seña...");
         }
+
+        // Actualizar panel de depuración
+        if (DEBUG) {
+          const debugInfo = recognizer.getDebugInfo(handLandmarks, results);
+          ui.updateDebugPanel(debugInfo, true);
+        } else {
+          ui.updateDebugPanel(null, false);
+        }
       } else {
         // No se detecta ninguna mano en pantalla
         ui.setHandDetected(false);
         ui.drawHandResults(null, detector); // Limpia el canvas
         ui.updateSubtitles("Esperando señas...");
         recognizer.reset();
+
+        // Actualizar panel de depuración
+        if (DEBUG) {
+          ui.updateDebugPanel({ detected: false }, true);
+        } else {
+          ui.updateDebugPanel(null, false);
+        }
       }
     } catch (error) {
       console.error("Error al procesar el cuadro de vídeo:", error);

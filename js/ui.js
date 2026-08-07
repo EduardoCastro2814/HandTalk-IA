@@ -42,6 +42,12 @@ export class UIController {
     this.handBadge.classList.add("hidden");
     this.switchBtn.classList.add("hidden"); // Ocultar switchBtn al apagar la cámara
     
+    // Remover panel de depuración si existe al desactivar la cámara
+    const debugPanel = document.getElementById("debugPanel");
+    if (debugPanel) {
+      debugPanel.remove();
+    }
+    
     // Limpiar canvas y estado de la mano
     this.clearCanvas();
     this.handBadge.classList.remove("detected");
@@ -226,5 +232,56 @@ export class UIController {
     } else {
       this.switchBtn.classList.add("hidden");
     }
+  }
+
+  /**
+   * Crea, actualiza o elimina el panel de depuración temporal en tiempo real.
+   * @param {Object} debugInfo - La información de depuración a mostrar.
+   * @param {boolean} isEnabled - Indica si el panel de depuración está activo.
+   */
+  updateDebugPanel(debugInfo, isEnabled) {
+    let panel = document.getElementById("debugPanel");
+
+    if (!isEnabled) {
+      if (panel) {
+        panel.remove();
+      }
+      return;
+    }
+
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "debugPanel";
+      panel.className = "debug-panel";
+      this.container.appendChild(panel);
+    }
+
+    if (!debugInfo || !debugInfo.detected) {
+      panel.innerHTML = `
+        <h3>Depuración</h3>
+        <div><strong>Mano detectada:</strong> No</div>
+        <div><strong>Lateralidad:</strong> Ninguna</div>
+        <div class="debug-divider"></div>
+        <div><strong>Letra candidata:</strong> Ninguna</div>
+        <div><strong>Confianza:</strong> 0%</div>
+      `;
+      return;
+    }
+
+    panel.innerHTML = `
+      <h3>Depuración</h3>
+      <div><strong>Mano detectada:</strong> Sí</div>
+      <div><strong>Lateralidad:</strong> ${debugInfo.handedness}</div>
+      <div class="debug-divider"></div>
+      <div><strong>Pulgar:</strong> ${debugInfo.pulgar}</div>
+      <div><strong>Índice:</strong> ${debugInfo.index}</div>
+      <div><strong>Medio:</strong> ${debugInfo.middle}</div>
+      <div><strong>Anular:</strong> ${debugInfo.ring}</div>
+      <div><strong>Meñique:</strong> ${debugInfo.pinky}</div>
+      <div class="debug-divider"></div>
+      <div><strong>Patrón:</strong> [${debugInfo.pattern.join(',')}]</div>
+      <div><strong>Letra candidata:</strong> ${debugInfo.candidate || "Ninguna"}</div>
+      <div><strong>Confianza:</strong> ${debugInfo.confidence}%</div>
+    `;
   }
 }
