@@ -20,6 +20,10 @@ let animationFrameId = null;
 // Habilitar panel de depuración temporal
 const DEBUG = true;
 
+// Estado del detector de inactividad de la mano (v0.3)
+let lastHandSeenTime = 0;
+let spaceInserted = false;
+
 /**
  * Inicializa la aplicación, asocia eventos de escucha y realiza la precarga del modelo de IA.
  */
@@ -60,6 +64,14 @@ async function init() {
 
   // Escuchar el clic del botón para cambiar de cámara (v0.3)
   ui.switchBtn.addEventListener("click", handleCameraSwitch);
+
+  // Escuchar el clic del botón para limpiar el texto construido (v0.3)
+  if (ui.clearBtn) {
+    ui.clearBtn.addEventListener("click", () => {
+      recognizer.clearText();
+      ui.updateWordDisplay("");
+    });
+  }
 }
 
 /**
@@ -112,6 +124,10 @@ async function handleCameraToggle() {
 function startDetectionLoop() {
   if (animationFrameId) return;
 
+  // Inicializar temporizadores de inactividad de la mano
+  lastHandSeenTime = performance.now();
+  spaceInserted = false;
+
   const processFrame = () => {
     if (!camera.isActive) return;
 
@@ -121,16 +137,12 @@ function startDetectionLoop() {
       const results = detector.detect(ui.video, timestamp);
 
       if (results && results.landmarks && results.landmarks.length > 0) {
-        console.log("=== DEBUG LOGS ===");
-        console.log("1. Contenido de results:", JSON.stringify(results));
-        console.log("2. Número de manos:", results.landmarks.length);
-        console.log("3. Landmarks en results.landmarks[0]:", results.landmarks[0] ? results.landmarks[0].length : 0);
-        console.log("4. MultiHandLandmarks:", results.multiHandLandmarks ? results.multiHandLandmarks.length : "undefined");
-        console.log("5. Handednesses:", JSON.stringify(results.handednesses));
-        console.log("6. Handedness:", JSON.stringify(results.handedness));
-
         // Mano detectada (Extraer los landmarks de la mano principal)
         const handLandmarks = results.landmarks[0];
+        
+        // Actualizar temporizadores al ver la mano
+        lastHandSeenTime = performance.now();
+        spaceInserted = false;
         
         // 1. Actualizar el estado visual del badge superior a "Mano detectada"
         ui.setHandDetected(true);
@@ -139,9 +151,7 @@ function startDetectionLoop() {
         ui.drawHandResults(handLandmarks, detector);
 
         // 3. Enviar landmarks al reconocedor para clasificar el signo
-        console.log("Enviando al recognizer landmarks longitud:", handLandmarks ? handLandmarks.length : null);
         const textResult = recognizer.recognize(handLandmarks);
-        console.log("Resultado devuelto por recognizer:", textResult);
         
         if (textResult) {
           ui.updateSubtitles(textResult);
@@ -156,10 +166,12 @@ function startDetectionLoop() {
           ui.updateSubtitles("Mano detectada. Esperando seña...");
         }
 
+        // Actualizar el texto acumulado construido
+        ui.updateWordDisplay(recognizer.getConstructedText());
+
         // Actualizar panel de depuración
         if (DEBUG) {
           const debugInfo = recognizer.getDebugInfo(handLandmarks, results);
-          console.log("Debug info generada:", JSON.stringify(debugInfo));
           ui.updateDebugPanel(debugInfo, true);
         } else {
           ui.updateDebugPanel(null, false);
@@ -170,6 +182,16 @@ function startDetectionLoop() {
         ui.drawHandResults(null, detector); // Limpia el canvas
         ui.updateSubtitles("Esperando señas...");
         recognizer.reset();
+
+        // Verificar inactividad para inserción de espacio automática (v0.3)
+        if (performance.now() - lastHandSeenTime > 2000 && !spaceInserted) {
+          const inserted = recognizer.insertSpace();
+          if (inserted) {
+            console.log("Auto-espacio insertado por inactividad de 2 segundos.");
+            ui.updateWordDisplay(recognizer.getConstructedText());
+          }
+          spaceInserted = true;
+        }
 
         // Actualizar panel de depuración
         if (DEBUG) {

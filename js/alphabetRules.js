@@ -149,6 +149,37 @@ export function classifyLetter(landmarks) {
     }
   }
 
+  // LETRA D: Índice levantado, otros cerrados (a diferencia de L, el pulgar no está extendido)
+  // - Dedo índice está ABIERTO.
+  // - Dedos medio, anular y meñique están CERRADOS.
+  // - Pulgar NO está extendido lateralmente (wide).
+  if (index.open && middle.closed && ring.closed && pinky.closed) {
+    if (!thumb.wide) {
+      return "D";
+    }
+  }
+
+  // LETRA F: Gesto de OK (pulgar e índice se tocan, medio/anular/meñique abiertos)
+  // - Dedos medio, anular y meñique están ABIERTOS.
+  // - Índice y pulgar se tocan (distancia normalizada corta).
+  if (middle.open && ring.open && pinky.open) {
+    const handScale = getDistance(landmarks[0], landmarks[9]) || 1;
+    const distThumbToIndexTip = getDistance(landmarks[4], landmarks[8]) / handScale;
+    if (distThumbToIndexTip < 0.25) {
+      return "F";
+    }
+  }
+
+  // LETRA I: Meñique levantado, otros cerrados (a diferencia de Y, el pulgar no está extendido)
+  // - Dedo meñique está ABIERTO.
+  // - Dedos índice, medio y anular están CERRADOS.
+  // - Pulgar NO está extendido lateralmente (wide).
+  if (pinky.open && index.closed && middle.closed && ring.closed) {
+    if (!thumb.wide) {
+      return "I";
+    }
+  }
+
   // LETRA L: Forma de L
   // - Dedo índice está ABIERTO.
   // - Dedos medio, anular y meñique están CERRADOS.
@@ -167,6 +198,13 @@ export function classifyLetter(landmarks) {
     if (!thumb.wide) {
       return "V";
     }
+  }
+
+  // LETRA W: Tres dedos extendidos (índice, medio, anular)
+  // - Dedos índice, medio y anular están ABIERTOS.
+  // - Dedo meñique está CERRADO.
+  if (index.open && middle.open && ring.open && pinky.closed) {
+    return "W";
   }
 
   // LETRA Y: Pulgar y meñique extendidos (gesto Shaka/teléfono)

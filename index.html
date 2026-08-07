@@ -91,11 +91,40 @@
           </button>
         </div>
 
-        <!-- Área de Subtítulos -->
+        <!-- Área de Subtítulos y Palabra Actual -->
         <div class="subtitles-wrapper">
-          <h2 class="subtitles-title">Traducción</h2>
+          <h2 class="subtitles-title">Traducción de señas</h2>
+          
+          <!-- Subtítulo / Letra actual detectada -->
           <div class="subtitles-container" id="subtitlesContainer" aria-live="assertive" aria-atomic="true">
-            <p class="subtitles-text" id="subtitlesText">Esperando reconocimiento...</p>
+            <p class="subtitles-text" id="subtitlesText">Esperando señas...</p>
+          </div>
+
+          <!-- Contenedor de Palabra Actual (v0.3) -->
+          <div class="word-builder-container">
+            <h3 class="word-builder-title">Texto construido</h3>
+            <div class="word-builder-content">
+              <div class="word-display" id="wordDisplay"></div>
+              <button id="clearTextButton" class="btn btn-secondary btn-small" aria-label="Limpiar texto construido">
+                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Limpiar texto</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel de Depuración Desplegable (v0.3) -->
+        <div class="debug-accordion">
+          <button class="debug-toggle" id="debugToggle" aria-expanded="false" aria-controls="debugContent">
+            <span>Panel de Depuración</span>
+            <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div class="debug-content hidden" id="debugContent">
+            <div class="debug-placeholder">Mano no detectada o depuración inactiva.</div>
           </div>
         </div>
 
@@ -105,7 +134,7 @@
     <!-- Footer -->
     <footer class="app-footer">
       <p class="footer-brand">HandTalk IA</p>
-      <p class="footer-version">Versión 0.2</p>
+      <p class="footer-version">Versión 0.3</p>
     </footer>
 
   </div>

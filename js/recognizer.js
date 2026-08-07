@@ -9,6 +9,10 @@ export class SignRecognizer {
     this.candidateCount = 0;
     this.lastAcceptedLetter = null;
     
+    // Sistema de construcción de palabras (v0.3)
+    this.constructedText = "";
+    this.lastAppendedLetter = null;
+    
     /* ========================================================================
        🔮 PUNTO DE INTEGRACIÓN FUTURA: CARGA DE MODELOS DE INFERENCIA
        ========================================================================
@@ -27,6 +31,9 @@ export class SignRecognizer {
     this.currentCandidate = null;
     this.candidateCount = 0;
     this.lastAcceptedLetter = null;
+    // OJO: No limpiamos constructedText al perder la mano para permitir deletrear con pausas,
+    // pero sí limpiamos lastAppendedLetter para poder repetir letras consecutivas tras pausa.
+    this.lastAppendedLetter = null;
   }
 
   /**
@@ -130,6 +137,19 @@ export class SignRecognizer {
       if (this.candidateCount >= 15) {
         // Estabilización alcanzada
         this.lastAcceptedLetter = this.currentCandidate;
+
+        // Construcción de palabras (v0.3):
+        // Si detectamos una letra estabilizada y es diferente de la última agregada
+        if (this.lastAcceptedLetter !== null) {
+          if (this.lastAcceptedLetter !== this.lastAppendedLetter) {
+            this.constructedText += this.lastAcceptedLetter;
+            this.lastAppendedLetter = this.lastAcceptedLetter;
+          }
+        } else {
+          // Si estabilizamos "nada" (ninguna letra), reseteamos lastAppendedLetter
+          // Esto permite deletrear la misma letra después de una breve pausa
+          this.lastAppendedLetter = null;
+        }
       }
     } else {
       // Cambio de letra candidata detectada, reiniciar contador
@@ -186,5 +206,34 @@ export class SignRecognizer {
     }
 
     return null;
+  }
+
+  /**
+   * Limpia el texto acumulado construido.
+   */
+  clearText() {
+    this.constructedText = "";
+    this.lastAppendedLetter = null;
+  }
+
+  /**
+   * Inserta un espacio en el texto construido para separar palabras.
+   * @returns {boolean} Si se insertó el espacio con éxito.
+   */
+  insertSpace() {
+    if (this.constructedText.length > 0 && !this.constructedText.endsWith(" ")) {
+      this.constructedText += " ";
+      this.lastAppendedLetter = null;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Obtiene el texto construido actual.
+   * @returns {string} El texto deletreado acumulado.
+   */
+  getConstructedText() {
+    return this.constructedText;
   }
 }

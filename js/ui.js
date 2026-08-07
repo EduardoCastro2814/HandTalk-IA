@@ -28,6 +28,21 @@ export class UIController {
     
     this.subtitlesContainer = document.getElementById("subtitlesContainer");
     this.subtitlesText = document.getElementById("subtitlesText");
+
+    // Elementos de construcción de palabra (v0.3)
+    this.wordDisplay = document.getElementById("wordDisplay");
+    this.clearBtn = document.getElementById("clearTextButton");
+    this.debugToggle = document.getElementById("debugToggle");
+    this.debugContent = document.getElementById("debugContent");
+
+    // Inicializar evento para el acordeón desplegable
+    if (this.debugToggle && this.debugContent) {
+      this.debugToggle.addEventListener("click", () => {
+        const isExpanded = this.debugToggle.getAttribute("aria-expanded") === "true";
+        this.debugToggle.setAttribute("aria-expanded", !isExpanded);
+        this.debugContent.classList.toggle("hidden", isExpanded);
+      });
+    }
   }
 
   /**
@@ -42,10 +57,9 @@ export class UIController {
     this.handBadge.classList.add("hidden");
     this.switchBtn.classList.add("hidden"); // Ocultar switchBtn al apagar la cámara
     
-    // Remover panel de depuración si existe al desactivar la cámara
-    const debugPanel = document.getElementById("debugPanel");
-    if (debugPanel) {
-      debugPanel.remove();
+    // Limpiar el contenido del panel desplegable de depuración
+    if (this.debugContent) {
+      this.debugContent.innerHTML = '<div class="debug-placeholder">Mano no detectada o depuración inactiva.</div>';
     }
     
     // Limpiar canvas y estado de la mano
@@ -235,30 +249,20 @@ export class UIController {
   }
 
   /**
-   * Crea, actualiza o elimina el panel de depuración temporal en tiempo real.
+   * Actualiza el panel desplegable de depuración en tiempo real.
    * @param {Object} debugInfo - La información de depuración a mostrar.
    * @param {boolean} isEnabled - Indica si el panel de depuración está activo.
    */
   updateDebugPanel(debugInfo, isEnabled) {
-    let panel = document.getElementById("debugPanel");
+    if (!this.debugContent) return;
 
     if (!isEnabled) {
-      if (panel) {
-        panel.remove();
-      }
+      this.debugContent.innerHTML = '<div class="debug-placeholder">Mano no detectada o depuración inactiva.</div>';
       return;
     }
 
-    if (!panel) {
-      panel = document.createElement("div");
-      panel.id = "debugPanel";
-      panel.className = "debug-panel";
-      this.container.appendChild(panel);
-    }
-
     if (!debugInfo || !debugInfo.detected) {
-      panel.innerHTML = `
-        <h3>Depuración</h3>
+      this.debugContent.innerHTML = `
         <div><strong>Mano detectada:</strong> No</div>
         <div><strong>Lateralidad:</strong> Ninguna</div>
         <div class="debug-divider"></div>
@@ -268,8 +272,7 @@ export class UIController {
       return;
     }
 
-    panel.innerHTML = `
-      <h3>Depuración</h3>
+    this.debugContent.innerHTML = `
       <div><strong>Mano detectada:</strong> Sí</div>
       <div><strong>Lateralidad:</strong> ${debugInfo.handedness}</div>
       <div class="debug-divider"></div>
@@ -283,5 +286,15 @@ export class UIController {
       <div><strong>Letra candidata:</strong> ${debugInfo.candidate || "Ninguna"}</div>
       <div><strong>Confianza:</strong> ${debugInfo.confidence}%</div>
     `;
+  }
+
+  /**
+   * Actualiza el texto construido (palabra actual) en pantalla.
+   * @param {string} text - El texto deletreado acumulado.
+   */
+  updateWordDisplay(text) {
+    if (this.wordDisplay) {
+      this.wordDisplay.textContent = text;
+    }
   }
 }
