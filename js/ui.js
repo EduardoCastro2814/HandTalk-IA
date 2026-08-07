@@ -14,6 +14,12 @@ export class UIController {
     this.placeholderText = document.getElementById("placeholderText");
     this.statusBadge = document.getElementById("cameraStatusBadge");
     
+    // Elementos del canvas y estado de la mano (v0.2)
+    this.canvas = document.getElementById("overlayCanvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.handBadge = document.getElementById("handStatusBadge");
+    this.handLabel = document.getElementById("handStatusLabel");
+    
     this.btn = document.getElementById("toggleCameraButton");
     this.btnText = document.getElementById("btnText");
     
@@ -25,10 +31,17 @@ export class UIController {
    * Restablece la interfaz al estado inicial con la cámara desactivada.
    */
   setInitialState() {
-    // 1. Mostrar/Ocultar elementos de video y placeholder
+    // 1. Mostrar/Ocultar elementos de video, canvas y placeholder
     this.video.classList.add("hidden");
+    this.canvas.classList.add("hidden");
     this.placeholder.classList.remove("hidden");
     this.statusBadge.classList.add("hidden");
+    this.handBadge.classList.add("hidden");
+    
+    // Limpiar canvas y estado de la mano
+    this.clearCanvas();
+    this.handBadge.classList.remove("detected");
+    this.handLabel.textContent = "No se detecta mano";
     
     // Quitar clases de error si existían
     this.placeholder.classList.remove("error");
@@ -52,10 +65,17 @@ export class UIController {
    * Configura la interfaz para reflejar que la cámara está activa y reproduciendo.
    */
   setCameraActive() {
-    // 1. Mostrar video y badge de estado, ocultar placeholder
+    // 1. Mostrar video, canvas y badge de estado, ocultar placeholder
     this.video.classList.remove("hidden");
+    this.canvas.classList.remove("hidden");
     this.placeholder.classList.add("hidden");
     this.statusBadge.classList.remove("hidden");
+    this.handBadge.classList.remove("hidden");
+    
+    // Limpiar canvas e insignias para iniciar limpias
+    this.clearCanvas();
+    this.handBadge.classList.remove("detected");
+    this.handLabel.textContent = "No se detecta mano";
     
     // Quitar clases de error
     this.placeholder.classList.remove("error");
@@ -70,6 +90,9 @@ export class UIController {
     this.subtitlesContainer.classList.add("active");
     this.subtitlesText.textContent = "Esperando señas...";
 
+    // 4. Adaptar tamaño de canvas
+    this.resizeCanvas();
+
     // Accesibilidad: Anunciar que la cámara ya está activa
     this.placeholder.setAttribute("aria-label", "Cámara activa.");
   }
@@ -79,10 +102,14 @@ export class UIController {
    * @param {string} errorType - Tipo de error ('denied' o 'unavailable').
    */
   setCameraError(errorType) {
-    // 1. Asegurar que el video y el badge estén ocultos
+    // 1. Asegurar que el video, el canvas y las insignias estén ocultos
     this.video.classList.add("hidden");
+    this.canvas.classList.add("hidden");
     this.placeholder.classList.remove("hidden");
     this.statusBadge.classList.add("hidden");
+    this.handBadge.classList.add("hidden");
+    
+    this.clearCanvas();
 
     // Agregar clase de estilo de error al placeholder
     this.placeholder.classList.add("error");
@@ -121,6 +148,53 @@ export class UIController {
     } else {
       this.subtitlesText.textContent = text;
       this.subtitlesContainer.classList.add("active");
+    }
+  }
+
+  /**
+   * Adapta el tamaño del lienzo de dibujo (canvas) al tamaño de cuadro del video.
+   */
+  resizeCanvas() {
+    if (this.video.videoWidth) {
+      // Sincronizar dimensiones de coordenadas del canvas con los del stream de video
+      if (this.canvas.width !== this.video.videoWidth || this.canvas.height !== this.video.videoHeight) {
+        this.canvas.width = this.video.videoWidth;
+        this.canvas.height = this.video.videoHeight;
+      }
+    }
+  }
+
+  /**
+   * Limpia todos los dibujos del lienzo.
+   */
+  clearCanvas() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  /**
+   * Actualiza el indicador visual de si se detecta una mano o no.
+   * @param {boolean} detected
+   */
+  setHandDetected(detected) {
+    if (detected) {
+      this.handBadge.classList.add("detected");
+      this.handLabel.textContent = "Mano detectada";
+    } else {
+      this.handBadge.classList.remove("detected");
+      this.handLabel.textContent = "No se detecta mano";
+    }
+  }
+
+  /**
+   * Renderiza el esqueleto de la mano en el canvas usando el dibujador del detector.
+   * @param {Array} landmarks - Puntos clave de la mano.
+   * @param {HandDetector} detector - Instancia del detector de manos.
+   */
+  drawHandResults(landmarks, detector) {
+    this.resizeCanvas();
+    this.clearCanvas();
+    if (landmarks) {
+      detector.drawHand(this.ctx, landmarks, this.canvas.width, this.canvas.height);
     }
   }
 }

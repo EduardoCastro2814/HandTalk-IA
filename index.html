@@ -47,6 +47,9 @@
           <!-- Elemento de Video -->
           <video id="webcamVideo" autoplay playsinline muted class="camera-video hidden" aria-label="Transmisión de video en vivo"></video>
           
+          <!-- Lienzo de Superposición (Canvas para Landmarks) -->
+          <canvas id="overlayCanvas" class="camera-canvas hidden" aria-hidden="true"></canvas>
+          
           <!-- Capa de Estado y Mensajes (Placeholder) -->
           <div class="camera-placeholder" id="cameraPlaceholder" aria-live="polite">
             <div class="placeholder-icon-wrapper">
@@ -61,6 +64,12 @@
           <div class="camera-status-badge hidden" id="cameraStatusBadge" aria-live="polite">
             <span class="status-dot"></span>
             <span class="status-label" id="statusLabel">Cámara activa</span>
+          </div>
+
+          <!-- Indicador de Estado de la Mano (Mano detectada, etc.) -->
+          <div class="hand-status-badge hidden" id="handStatusBadge" aria-live="polite">
+            <span class="hand-status-dot"></span>
+            <span class="hand-status-label" id="handStatusLabel">No se detecta mano</span>
           </div>
           
         </div>
@@ -89,7 +98,7 @@
     <!-- Footer -->
     <footer class="app-footer">
       <p class="footer-brand">HandTalk IA</p>
-      <p class="footer-version">Versión 0.1</p>
+      <p class="footer-version">Versión 0.2</p>
     </footer>
 
   </div>

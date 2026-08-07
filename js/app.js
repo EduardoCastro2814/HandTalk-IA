@@ -1,19 +1,24 @@
 /**
  * HandTalk IA - Orquestador Principal de la Aplicación
  * 
- * Este archivo inicializa y coordina los controladores de la cámara y de la
- * interfaz de usuario (UI), gestionando el flujo general de la aplicación.
+ * Este archivo inicializa y coordina los controladores de la cámara, de la
+ * interfaz de usuario (UI), el detector de manos y el reconocedor de señas.
  */
 
 import { CameraController } from "./camera.js";
 import { UIController } from "./ui.js";
+import { HandDetector } from "./handDetector.js";
+import { SignRecognizer } from "./recognizer.js";
 
-// Instancias globales del controlador de interfaz y cámara
+// Instancias globales de controladores e IA
 let ui;
 let camera;
+let detector;
+let recognizer;
+let animationFrameId = null;
 
 /**
- * Inicializa la aplicación, asocia eventos de escucha y establece el estado base.
+ * Inicializa la aplicación, asocia eventos de escucha y realiza la precarga del modelo de IA.
  */
 async function init() {
   ui = new UIController();
@@ -21,48 +26,41 @@ async function init() {
   // Registrar el controlador de la cámara apuntando al elemento de vídeo
   camera = new CameraController(ui.video);
 
+  // Inicializar clases de detección y clasificación de señas
+  detector = new HandDetector();
+  recognizer = new SignRecognizer();
+
   // Restablecer la interfaz a su estado predeterminado
   ui.setInitialState();
 
+  // Deshabilitar botón temporalmente mientras se descarga el modelo de IA (aprox. 5.6 MB)
+  ui.btn.disabled = true;
+  ui.btnText.textContent = "Cargando IA...";
+  ui.updateSubtitles("Cargando detector de manos (MediaPipe)...");
+
+  try {
+    // Inicializar el detector de manos descargando el modelo de CDN
+    await detector.initialize();
+    
+    // Habilitar botón una vez listo
+    ui.btn.disabled = false;
+    ui.btnText.textContent = "Iniciar cámara";
+    ui.updateSubtitles("Esperando reconocimiento...");
+  } catch (error) {
+    console.error("No se pudo precargar la inteligencia artificial:", error);
+    ui.btnText.textContent = "Error de IA";
+    ui.updateSubtitles("Error al cargar la IA. Verifique su conexión a Internet.");
+  }
+
   // Escuchar el clic del botón de control para encender/detener la cámara
   ui.btn.addEventListener("click", handleCameraToggle);
-
-  /* ========================================================================
-     🔮 PUNTO DE INTEGRACIÓN FUTURA: CARGA DE MODELOS DE IA (TensorFlow.js / MediaPipe)
-     ========================================================================
-     En esta fase de inicialización es altamente recomendable cargar los modelos
-     de IA en segundo plano de manera asíncrona para que estén listos cuando 
-     el usuario decida encender la cámara.
-     
-     Pasos de implementación sugeridos:
-     1. Importar las dependencias necesarias de MediaPipe Hands o TF.js
-        mediante scripts CDN en index.html o imports si se usa bundler:
-        import { Hands } from '@mediapipe/hands';
-     2. Crear una variable global `let handsModel = null;`
-     3. Llamar a una función de carga:
-        
-        async function loadAIModels() {
-          ui.updateSubtitles("Cargando inteligencia artificial...");
-          
-          handsModel = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-          });
-          
-          await handsModel.initialize();
-          
-          ui.updateSubtitles("IA Cargada. Lista para traducir.");
-          setTimeout(() => ui.updateSubtitles(""), 3000);
-        }
-        
-        loadAIModels();
-     ======================================================================== */
 }
 
 /**
  * Maneja la lógica de encendido y apagado de la cámara al presionar el botón.
  */
 async function handleCameraToggle() {
-  // Desactivar temporalmente el botón durante la transición para evitar múltiples pulsaciones accidentales
+  // Desactivar temporalmente el botón durante la transición para evitar múltiples clics
   ui.btn.disabled = true;
 
   if (!camera.isActive) {
@@ -71,36 +69,22 @@ async function handleCameraToggle() {
       await camera.start();
       ui.setCameraActive();
       
-      /* ========================================================================
-         🔮 PUNTO DE INTEGRACIÓN FUTURA: CONECTAR LA CÁMARA CON EL CLASIFICADOR
-         =======================================================================
-         Una vez que la cámara tiene éxito al iniciar (camera.isActive === true):
-         
-         1. Iniciar la inferencia del modelo en vivo.
-         2. Enviar las predicciones a la UI utilizando `ui.updateSubtitles(textoTraducido)`.
-         
-         Ejemplo:
-         camera.startProcessing((landmarks) => {
-             const palabra = classifer.predict(landmarks);
-             ui.updateSubtitles(palabra);
-         });
-         ======================================================================== */
-         
+      // Iniciar el bucle de procesamiento de fotogramas en tiempo real
+      startDetectionLoop();
     } catch (error) {
       console.error("Error al acceder a la cámara:", error);
       
       // Clasificación de errores según especificaciones de la API del navegador
       if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        // El usuario denegó explícitamente el permiso de cámara
         ui.setCameraError("denied");
       } else {
-        // Cámara dañada, desconectada, o utilizada por otra pestaña/aplicación
         ui.setCameraError("unavailable");
       }
     }
   } else {
-    // Si la cámara ya estaba encendida, detenerla y restablecer la interfaz
+    // Si la cámara ya estaba encendida, detener el procesamiento y apagar la cámara
     try {
+      stopDetectionLoop();
       camera.stop();
       ui.setInitialState();
     } catch (error) {
@@ -112,5 +96,74 @@ async function handleCameraToggle() {
   ui.btn.disabled = false;
 }
 
+/**
+ * Inicia el bucle recursivo de requestAnimationFrame para inferencia en tiempo real.
+ */
+function startDetectionLoop() {
+  if (animationFrameId) return;
+
+  const processFrame = () => {
+    if (!camera.isActive) return;
+
+    try {
+      // Registrar marca de tiempo exacta del frame para MediaPipe
+      const timestamp = performance.now();
+      const results = detector.detect(ui.video, timestamp);
+
+      if (results && results.landmarks && results.landmarks.length > 0) {
+        // Mano detectada (Extraer los landmarks de la mano principal)
+        const handLandmarks = results.landmarks[0];
+        
+        // 1. Actualizar el estado visual del badge superior a "Mano detectada"
+        ui.setHandDetected(true);
+        
+        // 2. Renderizar los puntos articulados y el esqueleto de líneas sobre el canvas
+        ui.drawHandResults(handLandmarks, detector);
+
+        // 3. Enviar landmarks al reconocedor para clasificar el signo
+        const textResult = recognizer.recognize(handLandmarks);
+        
+        if (textResult) {
+          ui.updateSubtitles(textResult);
+        } else {
+          /* ========================================================================
+             🔮 PUNTO DE INTEGRACIÓN FUTURA: RECONOCIMIENTO ACTIVO
+             ========================================================================
+             Cuando la mano esté detectada pero el clasificador en `recognizer.recognize`
+             aún no tenga una predicción segura, mantendremos este estado.
+             En la v0.3 aquí se acumularán las letras deletreadas o palabras detectadas.
+             ======================================================================== */
+          ui.updateSubtitles("Mano detectada. Esperando seña...");
+        }
+      } else {
+        // No se detecta ninguna mano en pantalla
+        ui.setHandDetected(false);
+        ui.drawHandResults(null, detector); // Limpia el canvas
+        ui.updateSubtitles("Esperando señas...");
+      }
+    } catch (error) {
+      console.error("Error al procesar el cuadro de vídeo:", error);
+    }
+
+    // Continuar el bucle recursivamente en el siguiente ciclo de refresco del navegador
+    animationFrameId = requestAnimationFrame(processFrame);
+  };
+
+  animationFrameId = requestAnimationFrame(processFrame);
+}
+
+/**
+ * Detiene el bucle de animación y limpia el canvas de dibujo.
+ */
+function stopDetectionLoop() {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  ui.setHandDetected(false);
+  ui.clearCanvas();
+}
+
 // Iniciar la app al cargar el DOM completamente
 document.addEventListener("DOMContentLoaded", init);
+
