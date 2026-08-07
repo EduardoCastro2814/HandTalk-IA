@@ -42,7 +42,7 @@
       <section class="card" aria-label="Área de traducción e interpretación">
         
         <!-- Área de la Cámara (Proporción 16:9) -->
-        <div class="camera-container" id="cameraContainer">
+        <div class="camera-container mirrored" id="cameraContainer">
           
           <!-- Elemento de Video -->
           <video id="webcamVideo" autoplay playsinline muted class="camera-video hidden" aria-label="Transmisión de video en vivo"></video>
@@ -74,13 +74,20 @@
           
         </div>
 
-        <!-- Botón de Control -->
+        <!-- Botones de Control -->
         <div class="controls-wrapper">
           <button id="toggleCameraButton" class="btn btn-primary" aria-label="Iniciar cámara" aria-pressed="false">
             <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
             <span id="btnText">Iniciar cámara</span>
+          </button>
+          
+          <button id="switchCameraButton" class="btn btn-secondary hidden" aria-label="Cambiar cámara">
+            <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2" />
+            </svg>
+            <span>Cambiar cámara</span>
           </button>
         </div>
 

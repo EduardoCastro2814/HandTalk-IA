@@ -54,6 +54,9 @@ async function init() {
 
   // Escuchar el clic del botón de control para encender/detener la cámara
   ui.btn.addEventListener("click", handleCameraToggle);
+
+  // Escuchar el clic del botón para cambiar de cámara (v0.3)
+  ui.switchBtn.addEventListener("click", handleCameraSwitch);
 }
 
 /**
@@ -67,7 +70,11 @@ async function handleCameraToggle() {
     try {
       // Intentar iniciar la cámara
       await camera.start();
-      ui.setCameraActive();
+      ui.setCameraActive(camera.facingMode);
+      
+      // Consultar si hay múltiples cámaras disponibles para mostrar/ocultar el botón switch
+      const hasMultiple = await camera.hasMultipleCameras();
+      ui.showSwitchCameraButton(hasMultiple);
       
       // Iniciar el bucle de procesamiento de fotogramas en tiempo real
       startDetectionLoop();
@@ -162,6 +169,44 @@ function stopDetectionLoop() {
   }
   ui.setHandDetected(false);
   ui.clearCanvas();
+}
+
+/**
+ * Detiene temporalmente el stream actual, rota la cámara frontal/trasera y reactiva la cámara.
+ */
+async function handleCameraSwitch() {
+  // Deshabilitar botones durante la rotación de cámara
+  ui.btn.disabled = true;
+  ui.switchBtn.disabled = true;
+  ui.switchBtn.classList.add("active"); // Estado visual temporal de carga
+
+  try {
+    // 1. Detener procesamiento en tiempo real
+    stopDetectionLoop();
+
+    // 2. Rotar el modo de cámara (user <-> environment)
+    camera.switchFacingMode();
+
+    // 3. Detener la cámara actual físicamente
+    camera.stop();
+
+    // 4. Iniciar la cámara con el nuevo modo
+    await camera.start();
+
+    // 5. Configurar interfaz para la nueva cámara y mirroring
+    ui.setCameraActive(camera.facingMode);
+
+    // 6. Reiniciar procesamiento en tiempo real
+    startDetectionLoop();
+  } catch (error) {
+    console.error("Error al cambiar de cámara:", error);
+    ui.setCameraError("unavailable");
+  } finally {
+    // Restaurar estado de botones
+    ui.btn.disabled = false;
+    ui.switchBtn.disabled = false;
+    ui.switchBtn.classList.remove("active");
+  }
 }
 
 // Iniciar la app al cargar el DOM completamente

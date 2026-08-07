@@ -23,6 +23,9 @@ export class UIController {
     this.btn = document.getElementById("toggleCameraButton");
     this.btnText = document.getElementById("btnText");
     
+    // Botón para alternar cámaras (v0.3)
+    this.switchBtn = document.getElementById("switchCameraButton");
+    
     this.subtitlesContainer = document.getElementById("subtitlesContainer");
     this.subtitlesText = document.getElementById("subtitlesText");
   }
@@ -37,11 +40,15 @@ export class UIController {
     this.placeholder.classList.remove("hidden");
     this.statusBadge.classList.add("hidden");
     this.handBadge.classList.add("hidden");
+    this.switchBtn.classList.add("hidden"); // Ocultar switchBtn al apagar la cámara
     
     // Limpiar canvas y estado de la mano
     this.clearCanvas();
     this.handBadge.classList.remove("detected");
     this.handLabel.textContent = "No se detecta mano";
+    
+    // Activar clase espejo por defecto para el estado de espera
+    this.container.classList.add("mirrored");
     
     // Quitar clases de error si existían
     this.placeholder.classList.remove("error");
@@ -64,7 +71,7 @@ export class UIController {
   /**
    * Configura la interfaz para reflejar que la cámara está activa y reproduciendo.
    */
-  setCameraActive() {
+  setCameraActive(facingMode = "environment") {
     // 1. Mostrar video, canvas y badge de estado, ocultar placeholder
     this.video.classList.remove("hidden");
     this.canvas.classList.remove("hidden");
@@ -93,8 +100,18 @@ export class UIController {
     // 4. Adaptar tamaño de canvas
     this.resizeCanvas();
 
+    // 5. Configurar el espejo del video y el canvas
+    // Espejamos solo si es cámara frontal (user)
+    if (facingMode === "user") {
+      this.container.classList.add("mirrored");
+      document.getElementById("statusLabel").textContent = "Cámara activa (frontal)";
+    } else {
+      this.container.classList.remove("mirrored");
+      document.getElementById("statusLabel").textContent = "Cámara activa (trasera)";
+    }
+
     // Accesibilidad: Anunciar que la cámara ya está activa
-    this.placeholder.setAttribute("aria-label", "Cámara activa.");
+    this.placeholder.setAttribute("aria-label", `Cámara activa (${facingMode === "user" ? "frontal" : "trasera"}).`);
   }
 
   /**
@@ -108,6 +125,7 @@ export class UIController {
     this.placeholder.classList.remove("hidden");
     this.statusBadge.classList.add("hidden");
     this.handBadge.classList.add("hidden");
+    this.switchBtn.classList.add("hidden");
     
     this.clearCanvas();
 
@@ -195,6 +213,18 @@ export class UIController {
     this.clearCanvas();
     if (landmarks) {
       detector.drawHand(this.ctx, landmarks, this.canvas.width, this.canvas.height);
+    }
+  }
+
+  /**
+   * Muestra u oculta el botón para alternar cámaras de video.
+   * @param {boolean} show
+   */
+  showSwitchCameraButton(show) {
+    if (show) {
+      this.switchBtn.classList.remove("hidden");
+    } else {
+      this.switchBtn.classList.add("hidden");
     }
   }
 }

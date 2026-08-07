@@ -16,6 +16,7 @@ export class CameraController {
     this.video = videoElement;
     this.stream = null;
     this.isActive = false;
+    this.facingMode = "environment"; // Por defecto cámara trasera (ideal en dispositivos móviles)
   }
 
   /**
@@ -34,12 +35,12 @@ export class CameraController {
     if (this.isActive) return this.stream;
 
     // Configuración recomendada para reconocimiento en tiempo real:
-    // - Cámara frontal ('user') para self-view
+    // - facingMode ideal configurable para alternar entre trasera (environment) y frontal (user)
     // - Resolución ideal HD (1280x720) que equilibra precisión de detección y rendimiento
     // - Audio desactivado por privacidad y menor consumo de recursos
     const constraints = {
       video: {
-        facingMode: "user",
+        facingMode: { ideal: this.facingMode },
         width: { ideal: 1280 },
         height: { ideal: 720 },
         aspectRatio: 1.7777777778 // 16:9
@@ -114,5 +115,32 @@ export class CameraController {
        1. Aquí se debe cancelar el bucle de requestAnimationFrame (usando cancelAnimationFrame).
        2. Liberar memoria si el modelo de TensorFlow.js/MediaPipe requiere limpieza explícita.
        ======================================================================== */
+  }
+
+  /**
+   * Alterna entre cámara frontal ('user') y cámara trasera ('environment').
+   * @returns {string} El nuevo modo de la cámara establecido.
+   */
+  switchFacingMode() {
+    this.facingMode = this.facingMode === "user" ? "environment" : "user";
+    return this.facingMode;
+  }
+
+  /**
+   * Verifica si el dispositivo actual posee múltiples cámaras de video disponibles.
+   * @returns {Promise<boolean>}
+   */
+  async hasMultipleCameras() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      return false;
+    }
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === "videoinput");
+      return videoDevices.length > 1;
+    } catch (error) {
+      console.warn("No fue posible consultar la lista de cámaras del hardware:", error);
+      return false;
+    }
   }
 }
