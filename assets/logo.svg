@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none">
+  <!-- Soft speech bubble in background -->
+  <path d="M84 26C92.8366 26 100 33.1634 100 42C100 47.3908 97.3323 52.1583 93.2188 55.0567L95.5 64L86.1473 59.3236C85.4449 59.4379 84.7297 59.5 84 59.5C75.1634 59.5 68 52.3366 68 42C68 33.1634 75.1634 26 84 26Z" fill="#0F52BA" fill-opacity="0.12" stroke="#0F52BA" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Modern stylized hand -->
+  <path d="M36 94V70C36 70 20 64 20 54C20 44 32 46 36 54V24C36 20.5 39 18 42.5 18C46 18 49 20.5 49 24V48M49 24C49 20.5 52 18 55.5 18C59 18 62 20.5 62 24V48M62 26C62 22.5 65 20 68.5 20C72 20 75 22.5 75 26V50M75 32C75 29 78 27 81 27C84 27 87 29 87 32V66C87 81.5 75.5 94 60 94H36Z" stroke="#0F52BA" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
