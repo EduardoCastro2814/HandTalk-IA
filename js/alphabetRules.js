@@ -93,8 +93,8 @@ export function analyzeFingers(landmarks) {
     ratio: thumbRatio,
     wide,
     folded,
-    distToIndexMCP,
-    distToMiddleMCP
+    distToIndexMCP: distThumbToIndexMCP,
+    distToMiddleMCP: distThumbToMiddleMCP
   };
 
   return {

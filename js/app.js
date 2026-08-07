@@ -121,6 +121,14 @@ function startDetectionLoop() {
       const results = detector.detect(ui.video, timestamp);
 
       if (results && results.landmarks && results.landmarks.length > 0) {
+        console.log("=== DEBUG LOGS ===");
+        console.log("1. Contenido de results:", JSON.stringify(results));
+        console.log("2. Número de manos:", results.landmarks.length);
+        console.log("3. Landmarks en results.landmarks[0]:", results.landmarks[0] ? results.landmarks[0].length : 0);
+        console.log("4. MultiHandLandmarks:", results.multiHandLandmarks ? results.multiHandLandmarks.length : "undefined");
+        console.log("5. Handednesses:", JSON.stringify(results.handednesses));
+        console.log("6. Handedness:", JSON.stringify(results.handedness));
+
         // Mano detectada (Extraer los landmarks de la mano principal)
         const handLandmarks = results.landmarks[0];
         
@@ -131,7 +139,9 @@ function startDetectionLoop() {
         ui.drawHandResults(handLandmarks, detector);
 
         // 3. Enviar landmarks al reconocedor para clasificar el signo
+        console.log("Enviando al recognizer landmarks longitud:", handLandmarks ? handLandmarks.length : null);
         const textResult = recognizer.recognize(handLandmarks);
+        console.log("Resultado devuelto por recognizer:", textResult);
         
         if (textResult) {
           ui.updateSubtitles(textResult);
@@ -149,6 +159,7 @@ function startDetectionLoop() {
         // Actualizar panel de depuración
         if (DEBUG) {
           const debugInfo = recognizer.getDebugInfo(handLandmarks, results);
+          console.log("Debug info generada:", JSON.stringify(debugInfo));
           ui.updateDebugPanel(debugInfo, true);
         } else {
           ui.updateDebugPanel(null, false);
