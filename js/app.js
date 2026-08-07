@@ -147,6 +147,7 @@ function startDetectionLoop() {
         ui.setHandDetected(false);
         ui.drawHandResults(null, detector); // Limpia el canvas
         ui.updateSubtitles("Esperando señas...");
+        recognizer.reset();
       }
     } catch (error) {
       console.error("Error al procesar el cuadro de vídeo:", error);
@@ -169,6 +170,9 @@ function stopDetectionLoop() {
   }
   ui.setHandDetected(false);
   ui.clearCanvas();
+  if (recognizer) {
+    recognizer.reset();
+  }
 }
 
 /**

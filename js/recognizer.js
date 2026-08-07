@@ -1,13 +1,13 @@
-/**
- * HandTalk IA - Módulo del Clasificador de Lengua de Señas
- * 
- * Este módulo contiene la estructura preparada para interpretar las coordenadas (landmarks)
- * obtenidas por el detector de manos y traducirlas a texto (letras, palabras o frases).
- */
+import { classifyLetter } from "./alphabetRules.js";
 
 export class SignRecognizer {
   constructor() {
-    this.isModelLoaded = false;
+    this.isModelLoaded = true; // Heurísticas cargadas inmediatamente
+    
+    // Sistema de estabilización
+    this.currentCandidate = null;
+    this.candidateCount = 0;
+    this.lastAcceptedLetter = null;
     
     /* ========================================================================
        🔮 PUNTO DE INTEGRACIÓN FUTURA: CARGA DE MODELOS DE INFERENCIA
@@ -21,12 +21,40 @@ export class SignRecognizer {
   }
 
   /**
+   * Restablece el estado del buffer de estabilización cuando se pierde la mano.
+   */
+  reset() {
+    this.currentCandidate = null;
+    this.candidateCount = 0;
+    this.lastAcceptedLetter = null;
+  }
+
+  /**
    * Procesa las coordenadas tridimensionales de la mano para traducir señas.
    * @param {Array} landmarks - Los 21 puntos clave (x, y, z) detectados por MediaPipe.
    * @returns {string|null} La seña predicha (letra, palabra) o null si no hay predicción confiable.
    */
   recognize(landmarks) {
-    if (!landmarks || landmarks.length === 0) return null;
+    if (!landmarks || landmarks.length === 0) {
+      this.reset();
+      return null;
+    }
+
+    // Clasificar seña usando reglas geométricas del módulo alphabetRules
+    const rawLetter = classifyLetter(landmarks);
+
+    // Sistema de estabilización: una letra debe permanecer durante al menos 15 frames
+    if (rawLetter === this.currentCandidate) {
+      this.candidateCount++;
+      if (this.candidateCount >= 15) {
+        // Estabilización alcanzada
+        this.lastAcceptedLetter = this.currentCandidate;
+      }
+    } else {
+      // Cambio de letra candidata detectada, reiniciar contador
+      this.currentCandidate = rawLetter;
+      this.candidateCount = 1;
+    }
 
     /* ========================================================================
        🔮 PUNTO DE INTEGRACIÓN FUTURA: CLASIFICACIÓN DE SEÑAS EN TIEMPO REAL
@@ -71,7 +99,11 @@ export class SignRecognizer {
           para ordenar semánticamente las palabras sueltas interpretadas y darles coherencia gramatical.
        ======================================================================== */
 
-    // Por ahora en v0.2, retornamos null o un estado de espera (placeholder)
+    // Si hay una letra aceptada por el buffer de estabilización, la mostramos con el formato solicitado
+    if (this.lastAcceptedLetter) {
+      return `Letra detectada: ${this.lastAcceptedLetter}`;
+    }
+
     return null;
   }
 }
